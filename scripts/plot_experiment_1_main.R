@@ -44,16 +44,16 @@ plot_violation_tile <- function(violation_summary, split_var) {
 
   ggplot(df, aes(x = factor(.data[[split_var]]), y = method)) +
     geom_tile(fill = "white", color = "grey60", linewidth = 0.6) +
-    geom_text(aes(label = label), color = "black", size = 3.2, fontface = "bold") +
+    geom_text(aes(label = label), color = "black", size = 3.7, fontface = "bold") +
     scale_x_discrete(labels = x_labeller) +
     scale_y_discrete(limits = rev(levels(df$method))) +
     labs(x = NULL, y = NULL, title = "Violation Rate") +
     theme_minimal() +
     theme(
       panel.grid    = element_blank(),
-      plot.title    = element_text(hjust = 0.5, size = 10),
-      axis.text.x   = element_text(size = 9),
-      axis.text.y   = element_text(size = 9),
+      plot.title    = element_text(hjust = 0.5, size = 11),
+      axis.text.x   = element_text(size = 11),
+      axis.text.y   = element_text(size = 11),
       panel.border  = element_blank()
     )
 }
@@ -67,11 +67,24 @@ plot_line_summary <- function(all_results, x_var, x_label, title_suffix) {
       .groups = "drop"
     )
 
-  n_methods <- length(unique(line_summary$method))
+  n_methods <- length(METHOD_COLORS)
+
+  # Shared color scale for both panels so their legends are identical and
+  # patchwork can collect them into a single legend. It lists BOTH dashed
+  # reference lines even though each panel only draws its own.
+  legend_values <- c(METHOD_COLORS,
+                     "Target Type I Error Rate" = "red",
+                     "Best linear"              = "black")
+  legend_breaks <- c(names(METHOD_COLORS), "Target Type I Error Rate", "Best linear")
   method_overrides <- list(
-    linetype  = c(rep("solid", n_methods), "2323"),
-    shape     = c(rep(16, n_methods), NA),
-    linewidth = c(rep(0.9, n_methods), 0.8)
+    linetype  = c(rep("solid", n_methods), "2323", "2323"),
+    shape     = c(rep(16, n_methods), NA, NA),
+    linewidth = c(rep(0.9, n_methods), 0.8, 0.8)
+  )
+  shared_color_scale <- scale_color_manual(
+    values = legend_values,
+    limits = legend_breaks,  # force ALL entries into each panel's legend (not just those present in its data)
+    guide  = guide_legend(title = NULL, nrow = 1, override.aes = method_overrides)
   )
 
   p_t1 <- ggplot(line_summary, aes(x = .data[[x_var]], y = mean_t1, color = method)) +
@@ -79,10 +92,7 @@ plot_line_summary <- function(all_results, x_var, x_label, title_suffix) {
     geom_point(size = 2) +
     geom_hline(aes(yintercept = TARGET_ALPHA, color = "Target Type I Error Rate"),
                linetype = "dashed", linewidth = 0.8) +
-    scale_color_manual(
-      values = c(METHOD_COLORS, "Target Type I Error Rate" = "red"),
-      guide  = guide_legend(title = NULL, override.aes = method_overrides)
-    ) +
+    shared_color_scale +
     scale_x_continuous(breaks = sort(unique(line_summary[[x_var]]))) +
     labs(x = x_label, y = "Average Type I Error Rate") +
     theme_minimal() +
@@ -93,10 +103,7 @@ plot_line_summary <- function(all_results, x_var, x_label, title_suffix) {
     geom_point(size = 2) +
     geom_hline(aes(yintercept = bl_type2_theo, color = "Best linear"),
                linetype = "dashed", linewidth = 0.8) +
-    scale_color_manual(
-      values = c(METHOD_COLORS, "Best linear" = "black"),
-      guide  = guide_legend(title = NULL, override.aes = method_overrides)
-    ) +
+    shared_color_scale +
     scale_x_continuous(breaks = sort(unique(line_summary[[x_var]]))) +
     labs(x = x_label, y = "Average Type II Error Rate") +
     theme_minimal() +
@@ -123,8 +130,12 @@ local({
   violation_tile <- plot_violation_tile(violation_summary, "pi")
 
   line_plots     <- plot_line_summary(all_results, "pi", expression("Class 0 Proportion (" * pi * ")"), "Class Balance")
-  combined_lines <- (line_plots$t1 | line_plots$t2) / violation_tile +
-    plot_layout(heights = c(3, 1))
+  combined_lines <- (line_plots$t1 | line_plots$t2) / guide_area() / violation_tile +
+    plot_layout(heights = c(3, 0.3, 1), guides = "collect") &
+    theme(legend.position   = "bottom",
+          legend.direction  = "horizontal",
+          legend.text       = element_text(size = 12),
+          legend.key.width  = unit(1.0, "cm"))
 
   print(combined_lines)
 
