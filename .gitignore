@@ -1,0 +1,25 @@
+# Experiment outputs (move chosen runs into data/ before plotting)
+output/
+
+# Private/in-progress folders
+npcost_paper/
+intuition_slides/
+meeting_notes/
+presentation/
+presentation copy/
+presentation copy.zip
+script_archive/
+data_archive/
+
+# Generated figures (reproducible from scripts)
+images/
+
+# R session artifacts
+.Rhistory
+.Rapp.history
+.RData
+Rplots.pdf
+
+# macOS / editor
+.DS_Store
+.stfolder/
