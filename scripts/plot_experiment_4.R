@@ -302,39 +302,52 @@ t2_methods   <- t1_methods[t1_methods != "Naive"]
 n_t1         <- length(t1_methods)
 n_t2         <- length(t2_methods)
 multi_clf    <- nlevels(all_results$classifier) > 1
-clf_col_spec <- if (multi_clf) "lll|" else "ll|"
-clf_col_hdr  <- if (multi_clf) "Clf. & Model & $n$" else "Model & $n$"
+n_label      <- if (multi_clf) 3 else 2
+clf_col_spec <- if (multi_clf) "lll " else "ll "
+clf_col_hdr  <- if (multi_clf) "Clsfr. & Model & $n$" else "Model & $n$"
 
 # Build LaTeX table string
 if (n_t1 == 1) {
   header <- paste0(
+    "% Requires \\usepackage{booktabs} and \\usepackage{graphicx} in preamble.\n",
     "\\begin{table}[ht]\n",
     "\\centering\n",
-    "\\begin{tabular}{", clf_col_spec, "c|c}\n",
-    "\\hline\n",
+    "\\resizebox{\\textwidth}{!}{%\n",
+    "\\begin{tabular}{", clf_col_spec, "c c}\n",
+    "\\toprule\n",
     clf_col_hdr, " & Type I Viol.\\ (\\%) & Avg.\\ $R_1$ (\\%) \\\\\n",
-    "\\hline\n"
+    "\\midrule\n"
   )
 } else {
+  cmid1_start <- n_label + 1
+  cmid1_end   <- n_label + n_t1
+  cmid2_start <- n_label + n_t1 + 1
+  cmid2_end   <- n_label + n_t1 + n_t2
   header <- paste0(
+    "% Requires \\usepackage{booktabs} and \\usepackage{graphicx} in preamble.\n",
     "\\begin{table}[ht]\n",
     "\\centering\n",
-    "\\small\n",
+    "\\resizebox{\\textwidth}{!}{%\n",
     "\\begin{tabular}{", clf_col_spec,
     paste(rep("c", n_t1), collapse = ""),
-    "|", paste(rep("c", n_t2), collapse = ""), "}\n",
-    "\\hline\n",
-    " & & & \\multicolumn{", n_t1, "}{c|}{Type I Violation Rate (\\%)} &",
-    " \\multicolumn{", n_t2, "}{c}{Average type II error (\\%, mean (sd))} \\\\\n",
+    " ", paste(rep("c", n_t2), collapse = ""), "}\n",
+    "\\toprule\n",
+    strrep(" & ", n_label),
+    "\\multicolumn{", n_t1, "}{c}{Type I Violation Rate (\\%)} & ",
+    "\\multicolumn{", n_t2, "}{c}{Avg.\\ Type II Error (\\%)} \\\\\n",
+    sprintf("\\cmidrule(lr){%d-%d} \\cmidrule(lr){%d-%d}\n",
+            cmid1_start, cmid1_end, cmid2_start, cmid2_end),
     clf_col_hdr, " & ",
     paste(t1_methods, collapse = " & "), " & ",
     paste(t2_methods, collapse = " & "), " \\\\\n",
-    "\\hline\n"
+    "\\midrule\n"
   )
 }
 
 body <- ""
-for (clf in levels(all_results$classifier)) {
+clf_levels <- levels(all_results$classifier)
+for (ci in seq_along(clf_levels)) {
+  clf      <- clf_levels[ci]
   clf_rows <- latex_data %>% filter(classifier == clf)
   for (mod in levels(all_results$model)) {
     mod_rows <- clf_rows %>% filter(model == mod)
@@ -343,26 +356,39 @@ for (clf in levels(all_results$classifier)) {
         if (mod == levels(all_results$model)[1] && i == 1) paste0(clf, " & ") else " & "
       } else ""
       mod_label <- if (i == 1) mod else ""
-      t1_vals <- paste(sapply(t1_methods, function(m) mod_rows[[m]][i]), collapse = " & ")
-      t2_vals <- paste(sapply(t2_methods, function(m) {
-        t2_val <- mod_rows[[paste0(m, "_t2")]][i]
+      # An asterisk marks any method whose Type I violation rate exceeds the
+      # target (within Monte Carlo tolerance) -- flagged on both that method's
+      # Type I cell (e.g. Naive) and its Type II cell.
+      star_method <- function(m) {
         vr_val <- mod_rows[[paste0(m, "_vr")]][i]
-        flagged <- !is.na(vr_val) && vr_val > TARGET_ALPHA + VIOLATION_SLACK
-        if (flagged) paste0(t2_val, "$^*$") else t2_val
+        !is.na(vr_val) && vr_val > TARGET_ALPHA + VIOLATION_SLACK
+      }
+      t1_vals <- paste(sapply(t1_methods, function(m) {
+        cell <- mod_rows[[m]][i]
+        if (star_method(m)) paste0(cell, "$^*$") else cell
       }), collapse = " & ")
+      t2_vals <- paste(sapply(t2_methods, function(m) {
+        cell <- mod_rows[[paste0(m, "_t2")]][i]
+        if (star_method(m)) paste0(cell, "$^*$") else cell
+      }), collapse = " & ")
+
       body <- paste0(body, sprintf(
         "%s%s & %s & %s & %s \\\\\n",
         clf_label, mod_label, mod_rows$n[i], t1_vals, t2_vals
       ))
     }
   }
-  body <- paste0(body, "\\hline\n")
+  if (ci < length(clf_levels)) body <- paste0(body, "\\midrule\n")
 }
 
 footer <- paste0(
-  "\\end{tabular}\n",
-  "\\caption{Type I violation rates and mean (sd) Type II error rates (in percentage) across classifiers, ",
-  "models, and sample sizes.}\n",
+  "\\bottomrule\n",
+  "\\end{tabular}%\n",
+  "}\n",
+  "\\caption{Type I violation rates and mean (SD) type II error rates (\\%) across classifiers, ",
+  "models, and sample sizes. An asterisk indicates that the type I violation rate exceeds ",
+  "the $10\\%$ target level (within Monte Carlo tolerance). The Naive classifier is excluded ",
+  "from the type II error comparison because it fails to satisfy the type I constraint.}\n",
   "\\label{Tab::Experiment4Results}\n",
   "\\end{table}"
 )

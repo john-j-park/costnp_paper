@@ -20,17 +20,16 @@ plan(multisession, workers = parallel::detectCores() - 1)
 # =============================================================================
 # EXPERIMENT CONFIGURATION
 # =============================================================================
-set.seed(1)
 SAMPLE_SIZES    <- c(1000)
-DATA_MODELS     <- c("gaussian")
+DATA_MODELS     <- c("planet_2")
 N_REPLICATIONS  <- 500
 DIMENSIONS      <- 20
 CLASS_BALANCE   <- 0.2
-POPULATION_SIZE <- 100000
+POPULATION_SIZE <- 1000000
 TARGET_ALPHA    <- 0.1
 TARGET_DELTA    <- 0.1
 
-METHODS <- c("QDA", "LDA", "SVM", "LR", "NB", "penLR")
+METHODS <- c("QDA", "LDA", "SVM", "LR", "NB","penLR")
 
 # Maps our method names to nproc's method argument; NULL means use npc_manual
 NPROC_METHOD_MAP <- list(
@@ -44,25 +43,23 @@ NPROC_METHOD_MAP <- list(
 
 COST_GRID <- list(
   gaussian = list(
-    "1000" = list(start = 0.99, end = 0.5, by = 0.01)
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   ),
-  planet = list(
-    "1000" = list(start = 0.99, end = 0.5, by = 0.01)
-  ),
-  homgaussian = list(
-    "1000" = list(start = 0.99, end = 0.5, by = 0.01)
+  planet_2 = list(
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   )
 )
 
 NAIVE_COST_GRID <- list(
   gaussian = list(
-    "1000" = list(start = 0.5, end = 0.995, by = 0.01)
+    "1000" = list(start = 0.01, end = 0.99, by = 0.02),
+    "5000" = list(start = 0.01, end = 0.99, by = 0.01)
   ),
-  planet = list(
-    "1000" = list(start = 0.5, end = 0.995, by = 0.01)
-  ),
-  homgaussian = list(
-    "1000" = list(start = 0.5, end = 0.995, by = 0.01)
+  planet_2 = list(
+    "1000" = list(start = 0.01, end = 0.99, by = 0.02),
+    "5000" = list(start = 0.01, end = 0.99, by = 0.01)
   )
 )
 
@@ -209,12 +206,12 @@ load_results <- function(path) {
 
 MODEL_RESULTS <- list(
 
-  planet   = load_results("data/experiment_3_planet.RData"),
+  planet_2 = load_results("data/experiment_3_planet_2.RData"),
   gaussian = load_results("data/experiment_3_gaussian.RData")
 )
 
 MODEL_LABELS <- c(
-  planet   = "Elliptical",
+  planet_2 = "Elliptical",
   gaussian = "Tri-diagonal"
 )
 
@@ -297,7 +294,6 @@ build_model_block <- function(all_results, model_label) {
       t2_sub[i, alg] <- if (!starred_t2[res_methods[i], alg]) avg_t2[res_methods[i], alg] else NA_real_
 
   row_min_j <- apply(t2_sub, 1, function(x) if (all(is.na(x))) NA_integer_ else which.min(x))
-  col_min_i <- apply(t2_sub, 2, function(x) if (all(is.na(x))) NA_integer_ else which.min(x))
 
   data_rows <- vapply(seq_along(res_methods), function(i) {
     meth <- res_methods[i]
@@ -306,18 +302,9 @@ build_model_block <- function(all_results, model_label) {
       alg     <- T2_ALGOS[j]
       is_star <- starred_t2[meth, alg]
       cell    <- fmt_t2_plain(avg_t2[meth, alg], sd_t2[meth, alg])
-      if (is_star) cell <- paste0(cell, "$^*$")
-      is_row_min <- !is_star && !is.na(row_min_j[meth]) && j == row_min_j[meth]
-      is_col_min <- !is_star && !is.na(col_min_i[alg])  && i == col_min_i[alg]
-      if (is_col_min && is_row_min) {
-        sprintf("\\textcolor{green!60!black}{\\textbf{%s}}", cell)
-      } else if (is_col_min) {
-        sprintf("\\textcolor{green!60!black}{%s}", cell)
-      } else if (is_row_min) {
-        sprintf("\\textbf{%s}", cell)
-      } else {
-        cell
-      }
+      if (is_star) return(paste0(cell, "$^*$"))
+      is_row_min <- !is.na(row_min_j[meth]) && j == row_min_j[meth]
+      if (is_row_min) sprintf("\\textbf{%s}", cell) else cell
     }, character(1))
     sprintf("%s & %s & %s \\\\",
             row_labels[i],
@@ -325,21 +312,34 @@ build_model_block <- function(all_results, model_label) {
             paste(t2_cells, collapse = " & "))
   }, character(1))
 
-  model_header <- sprintf("\\multicolumn{%d}{l}{\\textit{%s}} \\\\", n_cols, model_label)
-  c(model_header, "\\hline", data_rows)
+  # Isolate the true data-generating model (QDA) as the theoretical baseline:
+  # it sits directly under the model header, separated by its own rule.
+  model_header <- sprintf("\\multicolumn{%d}{l}{\\textbf{%s}} \\\\", n_cols, model_label)
+  qda_idx <- which(res_methods == "QDA")
+  if (length(qda_idx) == 1) {
+    c(model_header, "\\midrule",
+      data_rows[qda_idx], "\\midrule",
+      data_rows[-qda_idx])
+  } else {
+    c(model_header, "\\midrule", data_rows)
+  }
 }
 
 # ---- LaTeX table ------------------------------------------------------------
 
-col_spec <- paste0("l|", paste(rep("c", n_t1), collapse = ""),
-                   "|", paste(rep("c", n_t2), collapse = ""))
+col_spec <- paste0("l ", paste(rep("c", n_t1), collapse = ""),
+                   " ", paste(rep("c", n_t2), collapse = ""))
 
 header_row1 <- sprintf(
-  " & \\multicolumn{%d}{c|}{Type I Violation Rate (\\%%)} & \\multicolumn{%d}{c}{Avg.\\ Type II Error (\\%%, SD)} \\\\",
+  " & \\multicolumn{%d}{c}{Type I Violation Rate (\\%%)} & \\multicolumn{%d}{c}{Avg.\\ Type II Error (\\%%, SD)} \\\\",
   n_t1, n_t2
 )
+cmidrule_row <- sprintf(
+  "\\cmidrule(lr){%d-%d} \\cmidrule(lr){%d-%d}",
+  2, 1 + n_t1, 2 + n_t1, 1 + n_t1 + n_t2
+)
 header_row2 <- sprintf(
-  "Clf. & %s & %s \\\\",
+  "Classifier & %s & %s \\\\",
   paste(ALGO_LABELS[ALGOS], collapse = " & "),
   paste(ALGO_LABELS[T2_ALGOS], collapse = " & ")
 )
@@ -347,26 +347,31 @@ header_row2 <- sprintf(
 model_blocks <- lapply(names(MODEL_RESULTS), function(m) {
   build_model_block(MODEL_RESULTS[[m]], MODEL_LABELS[m])
 })
-body_rows <- Reduce(function(a, b) c(a, "\\hline", b), model_blocks)
+body_rows <- Reduce(function(a, b) c(a, "\\midrule", b), model_blocks)
 
 latex_lines <- c(
-  "% Requires \\usepackage{xcolor} in preamble.",
-  "% $^*$ = type I violation rate exceeds target $\\delta$.",
+  "% Requires \\usepackage{booktabs} and \\usepackage{graphicx} in preamble.",
   "\\begin{table}[ht]",
   "\\centering",
+  "\\resizebox{\\textwidth}{!}{%",
   sprintf("\\begin{tabular}{%s}", col_spec),
-  "\\hline",
+  "\\toprule",
   header_row1,
+  cmidrule_row,
   header_row2,
-  "\\hline",
+  "\\midrule",
   body_rows,
-  "\\hline",
-  "\\end{tabular}",
+  "\\bottomrule",
+  "\\end{tabular}%",
+  "}",
   sprintf(paste0(
-    "\\caption{Type I violation rates and mean (sd) Type II error rates (in percentage) across classifiers, ",
-    "models, and sample sizes. An asterisk indicates that the type I violation rate exceeds ",
-    "the target violation level of $%.0f\\%%$ (within Monte Carlo tolerance). The lowest ",
-    "average type II error in each row, among non-asterisked entries, is shown in bold.}"
+    "\\caption{Type I violation rates and mean (SD) Type II error rates (\\%%) across classifiers ",
+    "and models. An asterisk indicates that the type I violation rate exceeds ",
+    "the target violation level of $%.0f\\%%$ (within Monte Carlo tolerance). ",
+    "The Naive classifier is excluded from the type II error comparison because ",
+    "it fails to control the type I constraint for most classifiers. ",
+    "The true data-generating model (QDA) is isolated as the theoretical baseline. ",
+    "The lowest average type II error in each row is shown in bold.}"
   ), TABLE_ALPHA * 100),
   "\\label{Tab::Experiment3Results}",
   "\\end{table}"

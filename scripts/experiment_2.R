@@ -32,16 +32,16 @@ TARGET_DELTA    <- 0.1
 
 COST_GRID <- list(
   gaussian = list(
-    "1000" = list(start = 0.99, end = 0.5, by = 0.02),
-    "5000" = list(start = 0.99, end = 0.5, by = 0.01)
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   ),
   homgaussian = list(
-    "1000" = list(start = 0.99, end = 0.5, by = 0.02),
-    "5000" = list(start = 0.99, end = 0.5, by = 0.01)
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   ),
   planet_2 = list(
-    "1000" = list(start = 0.99, end = 0.5, by = 0.02),
-    "5000" = list(start = 0.99, end = 0.5, by = 0.01)
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   )
 )
 
@@ -65,6 +65,7 @@ for (g in seq_len(nrow(scenario_groups))) {
   g_n     <- scenario_groups$n[g]
   g_model <- scenario_groups$model[g]
   cost_settings <- COST_GRID[[g_model]][[as.character(g_n)]]
+  tfun <- function(cost) cost
 
   cat(sprintf("\n--- Running: model=%s, n=%d (%d/%d) ---\n",
               g_model, g_n, g, nrow(scenario_groups)))
@@ -77,7 +78,7 @@ for (g in seq_len(nrow(scenario_groups))) {
     res_costnp_plus <- costnp_plus(
       data, pop, alpha = TARGET_ALPHA, method = "LR",
       cost_start = cost_settings$start, cost_end = cost_settings$end,
-      cost_by = cost_settings$by
+      cost_by = cost_settings$by, threshold_fun = tfun
     )
     costnp_plus_row <- data.frame(cost   = res_costnp_plus$cost,
                                   pop_t1 = res_costnp_plus$population_type1,
@@ -87,7 +88,7 @@ for (g in seq_len(nrow(scenario_groups))) {
     res_costnp <- costnp(
       data, pop, alpha = TARGET_ALPHA, method = "LR",
       cost_start = cost_settings$start, cost_end = cost_settings$end,
-      cost_by = cost_settings$by
+      cost_by = cost_settings$by, threshold_fun = tfun
     )
     costnp_row <- data.frame(cost   = res_costnp$cost,
                              pop_t1 = res_costnp$population_type1,
@@ -193,16 +194,20 @@ VIOLATION_SLACK <- 2*sqrt(TARGET_ALPHA * (1 - TARGET_ALPHA) / N_REPLICATIONS)
 viol_threshold  <- (TARGET_ALPHA + VIOLATION_SLACK) * 100
 
 header <- paste0(
+  "% Requires \\usepackage{booktabs} and \\usepackage{graphicx} in preamble.\n",
   "\\begin{table}[ht]\n",
   "\\centering\n",
-  "\\setlength{\\tabcolsep}{5pt}\n",
-  "\\begin{tabular}{llccccc}\n",
-  "\\hline\n",
+  "\\resizebox{\\textwidth}{!}{%\n",
+  "\\begin{tabular}{ll ccccc}\n",
+  "\\toprule\n",
   "Model & $n$ & Naive & NP & CostNP+ & CostNP & eLDA \\\\\n",
-  "\\hline\n"
+  "\\midrule\n"
 )
 
-body <- "\\multicolumn{7}{l}{\\textit{Type I violation rate (\\%)}} \\\\\n"
+body <- paste0(
+  "\\multicolumn{7}{l}{\\textbf{Type I Violation Rate (\\%)}} \\\\\n",
+  "\\midrule\n"
+)
 
 for (mod in model_order) {
   for (i_n in seq_along(n_order)) {
@@ -224,8 +229,9 @@ for (mod in model_order) {
   }
 }
 
-body <- paste0(body, "\\hline\n",
-               "\\multicolumn{7}{l}{\\textit{Average type II error (\\%)}} \\\\\n")
+body <- paste0(body, "\\midrule\n",
+               "\\multicolumn{7}{l}{\\textbf{Avg.\\ Type II Error (\\%, SD)}} \\\\\n",
+               "\\midrule\n")
 
 for (mod in model_order) {
   for (i_n in seq_along(n_order)) {
@@ -256,12 +262,15 @@ for (mod in model_order) {
 }
 
 footer <- paste0(
-  "\\hline\n",
-  "\\end{tabular}\n",
-  "\\caption{Average type I violation rates and mean (sd) Type II error rates (in percentage) across classifiers, ",
+  "\\bottomrule\n",
+  "\\end{tabular}%\n",
+  "}\n",
+  "\\caption{Type I violation rates and mean (SD) type II error rates (\\%) across classifiers, ",
   "models, and sample sizes. An asterisk indicates that the type I violation rate exceeds ",
-  "the target violation level of $10\\%$ (within Monte Carlo tolerance). The lowest ",
-  "average type II error in each row, among non-asterisked entries, is shown in bold.}\n",
+  "the target violation level of $10\\%$ (within Monte Carlo tolerance). An asterisk in the ",
+  "type II section denotes that the corresponding classifier's violation rate exceeded this ",
+  "target. Bold entries indicate the lowest average type II error in each row, excluding the ",
+  "asterisked entries.}\n",
   "\\label{Tab::Experiment2Table}\n",
   "\\end{table}"
 )

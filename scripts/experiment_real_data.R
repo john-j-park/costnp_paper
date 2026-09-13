@@ -24,12 +24,12 @@ plan(multisession, workers = parallel::detectCores() - 1)
 # =============================================================================
 # DATA & CONFIGURATION
 # =============================================================================
-TARGET_ALPHA <- 0.1
+TARGET_ALPHA <- 0.15
 TARGET_DELTA <- 0.1
 REPS <- 500
 split_ratio <- 0.7
 
-ALGORITHMS <- c("costnp_plus", "costnp", "nproc", "naive", "np_man", "elda")
+ALGORITHMS <- c("costnp_plus", "costnp", "nproc", "naive")
 
 split_data <- function(x, y) {
   ind0 <- which(y == 0)

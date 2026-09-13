@@ -34,31 +34,31 @@ METHODS_TO_RUN  <- c("LDA", "LR", "NB")
 # GB and NB share the "default" grids; LR uses its own.
 COST_GRID_DEFAULT <- list(
   gaussian = list(
-    "1000" = list(start = 0.99, end = 0.2, by = 0.02),
-    "5000" = list(start = 0.95, end = 0.2, by = 0.01)
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   ),
   t = list(
-    "1000" = list(start = 0.99, end = 0.2, by = 0.02),
-    "5000" = list(start = 0.95, end = 0.2, by = 0.01)
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   ),
   mixture = list(
-    "1000" = list(start = 0.99, end = 0.2, by = 0.02),
-    "5000" = list(start = 0.95, end = 0.2, by = 0.01)
+    "1000" = list(start = 0.99, end = 0.01, by = 0.02),
+    "5000" = list(start = 0.99, end = 0.01, by = 0.01)
   )
 )
 
 NAIVE_COST_GRID_DEFAULT <- list(
   gaussian = list(
-    "1000" = list(start = 0.45, end = 0.995, by = 0.02),
-    "5000" = list(start = 0.45, end = 0.9,   by = 0.01)
+    "1000" = list(start = 0.01, end = 0.99, by = 0.02),
+    "5000" = list(start = 0.01, end = 0.99,   by = 0.01)
   ),
   t = list(
-    "1000" = list(start = 0.15, end = 0.995, by = 0.02),
-    "5000" = list(start = 0.25, end = 0.9,   by = 0.01)
+    "1000" = list(start = 0.01, end = 0.99, by = 0.02),
+    "5000" = list(start = 0.01, end = 0.99,   by = 0.01)
   ),
   mixture = list(
-    "1000" = list(start = 0.5,  end = 0.995, by = 0.02),
-    "5000" = list(start = 0.5,  end = 0.9,   by = 0.01)
+    "1000" = list(start = 0.01,  end = 0.99, by = 0.02),
+    "5000" = list(start = 0.01,  end = 0.99,   by = 0.01)
   )
 )
 

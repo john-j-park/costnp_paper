@@ -140,4 +140,19 @@ local({
   print(combined_lines)
 
   ggsave("images/experiment_1_line.pdf", plot = combined_lines, width = 10, height = 6, dpi = 100)
+
+  # Slide variant: line panels only. The paper figure keeps the violation-rate
+  # table, but at projection size its numbers are too small to read, so the deck
+  # uses this version and the violation rates are given verbally instead.
+  # Height drops from 6 to 4.6 = 6 * 3.3/4.3, the share of the layout that the
+  # two line panels and the legend strip occupied.
+  slide_lines <- (line_plots$t1 | line_plots$t2) / guide_area() +
+    plot_layout(heights = c(3, 0.3), guides = "collect") &
+    theme(legend.position   = "bottom",
+          legend.direction  = "horizontal",
+          legend.text       = element_text(size = 12),
+          legend.key.width  = unit(1.0, "cm"))
+
+  ggsave("images/experiment_1_line_slides.pdf", plot = slide_lines,
+         width = 10, height = 4.6, dpi = 100)
 })

@@ -101,7 +101,7 @@ plot_npc_boundary <- function(nproc_fit, data, mu0, Sigma0, mu1, Sigma1, save_pa
                             linewidth = c(NA,      NA,      0.5,     1.2,     1.2))
       ),
       breaks = c("#D9534F", "#00BFC4", cand_col, "black", "#A67C00"),
-      labels = c("Class 0 Points", "Class 1 Points", "Candidate classifiers", "Best linear boundary", "NP boundary")
+      labels = c("Class 0 Points", "Class 1 Points", "Candidate classifiers", "Best linear boundary", "NP-umbrella boundary")
     ) +
     coord_cartesian(xlim = range(data$x[, 1]), ylim = range(data$x[, 2])) +
     theme_minimal() +
@@ -160,7 +160,7 @@ plot_cost_grid <- function(data, res, mu0, Sigma0, mu1, Sigma1, classify_fn, sav
                             linewidth = c(NA,      NA,      0.5,     1.2,     1.2))
       ),
       breaks = c("#D9534F", "#00BFC4", cand_col, "black", "#0072B2"),
-      labels = c("Class 0 Points", "Class 1 Points", "Candidate classifiers", "Best linear boundary", "CS boundary")
+      labels = c("Class 0 Points", "Class 1 Points", "Candidate classifiers", "Best linear boundary", "CostNP+ boundary")
     ) +
     theme_minimal() +
     theme(panel.border         = element_rect(colour = "black", fill = NA, linewidth = 1),

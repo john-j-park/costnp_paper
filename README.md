@@ -1,24 +1,23 @@
 # Flexible Neyman–Pearson Classification via Cost-Sensitive Learning
 
-**John Park, Rachel Wang, Jessica Li, Xin Tong**
+**John Park, Rachel Wang, Wei Vivian Li, Jessica Li, Xin Tong**
 
 Code to reproduce all experiments and figures in the paper.
 
 ## Dependencies
 
-All code is written in R. The following packages are required:
+All code is written in R. The following CRAN packages are required:
 
 ```r
-install.packages(c("ggplot2", "dplyr", "data.table", "furrr", "future", "MASS", "mvtnorm", "e1071"))
+install.packages(c("dplyr", "tidyr", "ggplot2", "patchwork", "data.table",
+                   "furrr", "future", "pbapply", "MASS", "mvtnorm", "kernlab", "nproc"))
 ```
 
-The `npcost` and `nproc` packages are also required:
+The `costnp` package, which implements CostNP and CostNP+, is also required. Install it from GitHub:
 
 ```r
-# nproc is available on CRAN
-install.packages("nproc")
-
-# npcost — install from source (link TBD)
+# install.packages("devtools")
+devtools::install_github("john-j-park/costnp")
 ```
 
 ## Reproducing the paper

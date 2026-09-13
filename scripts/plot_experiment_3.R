@@ -2,7 +2,7 @@
 # Experiment 3 — boxplots (varying classifier)
 # Boxplot analog of the Experiment 3 table (experiment_3.R). The x axis is the
 # cost-selection *algorithm* (Naive / NP / CostNP+ / CostNP) and panels are
-# faceted by the base *classifier* (QDA, LDA, SVM, LR, NB, XGB, penLR).
+# faceted by the base *classifier* (QDA, LDA, SVM, LR, NB, penLR).
 #
 # Loads, per data model, an .RData file containing `all_results`: a named list
 # keyed by classifier, each element a named list (costnp_plus, costnp, naive,
@@ -16,10 +16,10 @@ TARGET_ALPHA <- 0.1
 
 # Files keyed by data model (mirrors MODEL_RESULTS in experiment_3.R)
 MODEL_FILES <- list(
-  planet   = "data/experiment_3_planet.RData",
+  planet_2 = "data/experiment_3_planet_2.RData",
   gaussian = "data/experiment_3_gaussian.RData"
 )
-MODEL_LABELS <- c(planet = "Elliptical", gaussian = "Tri-diagonal")
+MODEL_LABELS <- c(planet_2 = "Elliptical", gaussian = "Tri-diagonal")
 
 # Algorithm (x axis) — labels, colours, left-to-right order
 ALGO_LABELS <- c(naive = "Naive", np = "NP", costnp_plus = "CostNP+", costnp = "CostNP")

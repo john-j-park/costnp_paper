@@ -5,7 +5,7 @@
 library(ggplot2)
 library(dplyr)
 
-TARGET_ALPHA <- 0.1
+TARGET_ALPHA <- 0.15
 TARGET_DELTA <- 0.1
 REPS         <- 500
 
@@ -173,3 +173,4 @@ figures <- paste(sapply(datasets, function(ds) {
 }), collapse = "\n\n")
 
 cat(sprintf("\n\n%% Add to preamble: \\usepackage{subcaption}\n\n%s\n", figures))
+

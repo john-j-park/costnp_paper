@@ -23,7 +23,6 @@ plan(multisession, workers = parallel::detectCores() - 1)
 SAMPLE_SIZES    <- c(1000)
 DATA_MODELS     <- c("planet")
 N_REPLICATIONS  <- 500
-DIMENSIONS      <- 3
 CLASS_BALANCES  <- seq(0.1, 0.9, by = 0.1)
 POPULATION_SIZE <- 1000000
 TARGET_ALPHA    <- 0.1
@@ -31,7 +30,7 @@ TARGET_DELTA    <- 0.1
 
 COST_GRID <- list(
   planet = list(
-    "1000"  = list(start = 0.99, end = 0.3,  by = 0.02)
+    "1000"  = list(start = 0.99, end = 0.01,  by = 0.02)
   )
 )
 

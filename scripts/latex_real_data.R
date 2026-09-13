@@ -3,7 +3,7 @@
 # =============================================================================
 
 DATA_DIR     <- "data"
-TARGET_ALPHA <- 0.1
+TARGET_ALPHA <- 0.15
 TARGET_DELTA <- 0.1
 REPS         <- 500
 
@@ -99,10 +99,12 @@ fmt_t1 <- function(v, star) {
   sprintf("%.1f%s", v * 100, if (star) "$^*$" else "")
 }
 
-fmt_t2 <- function(v, sd, bold) {
+fmt_t2 <- function(v, sd, bold, star) {
   if (is.na(v)) return("---")
   s <- sprintf("%.1f (%.1f)", v * 100, sd * 100)
-  if (bold) sprintf("\\textbf{%s}", s) else s
+  if (bold) s <- sprintf("\\textbf{%s}", s)
+  if (star) s <- paste0(s, "$^*$")
+  s
 }
 
 build_latex_table <- function(viol, type2, sd_type2, dataset_labels,
@@ -113,21 +115,24 @@ build_latex_table <- function(viol, type2, sd_type2, dataset_labels,
   n_t2    <- length(t2_methods)
   dnames  <- rownames(viol)
 
-  col_spec <- paste0("l|", paste(rep("c", n_t1), collapse = ""), "|",
+  col_spec <- paste0("l ", paste(rep("c", n_t1), collapse = ""), " ",
                      paste(rep("c", n_t2), collapse = ""))
 
   lines <- c(
+    "% Requires \\usepackage{booktabs} and \\usepackage{graphicx} in preamble.",
     "\\begin{table}[ht]",
     "\\centering",
     "\\resizebox{\\textwidth}{!}{%",
     sprintf("\\begin{tabular}{%s}", col_spec),
-    "\\hline",
-    sprintf(" & \\multicolumn{%d}{c|}{Type I Violation Rate (\\%%)} & \\multicolumn{%d}{c}{Average Type II Error (\\%%)} \\\\",
+    "\\toprule",
+    sprintf(" & \\multicolumn{%d}{c}{Type I Violation Rate (\\%%)} & \\multicolumn{%d}{c}{Avg.\\ Type II Error (\\%%, SD)} \\\\",
             n_t1, n_t2),
+    sprintf("\\cmidrule(lr){%d-%d} \\cmidrule(lr){%d-%d}",
+            2, 1 + n_t1, 2 + n_t1, 1 + n_t1 + n_t2),
     sprintf("Dataset & %s & %s \\\\",
             paste(t1_labels[t1_methods], collapse = " & "),
             paste(t2_labels[t2_methods], collapse = " & ")),
-    "\\hline"
+    "\\midrule"
   )
 
   for (dname in dnames) {
@@ -149,7 +154,7 @@ build_latex_table <- function(viol, type2, sd_type2, dataset_labels,
       is_bold <- rep(FALSE, length(t2_methods))
     }
 
-    t2_cells <- mapply(fmt_t2, type2[dname, t2_methods], sd_type2[dname, t2_methods], is_bold)
+    t2_cells <- mapply(fmt_t2, type2[dname, t2_methods], sd_type2[dname, t2_methods], is_bold, t2_viol)
 
     lines <- c(lines,
       sprintf("%s & %s & %s \\\\",
@@ -159,8 +164,8 @@ build_latex_table <- function(viol, type2, sd_type2, dataset_labels,
   }
 
   lines <- c(lines,
-    "\\hline",
-    "\\end{tabular}",
+    "\\bottomrule",
+    "\\end{tabular}%",
     "}",
     sprintf("\\caption{%s}", caption),
     sprintf("\\label{%s}", label),
@@ -194,12 +199,16 @@ latex1 <- build_latex_table(
   t1_labels      = t1_labels,
   t2_labels      = t2_labels,
   viol_threshold = VIOLATION_THRESHOLD,
-  bold_min_t2    = FALSE,
+  bold_min_t2    = TRUE,
   caption = paste0(
-    "Average type I violation rates and mean (sd) Type II error rates (in percentage) ",
-    "across classifiers, models, and sample sizes. ",
-    "An asterisk indicates that the type I violation rate exceeds ",
-    "the target violation level of $10\\%$ (within Monte Carlo tolerance)."
+    "Type I violation rates and mean (SD) Type II error rates (\\%) across classifiers ",
+    "and datasets. An asterisk indicates that the type I violation rate exceeds ",
+    "the target violation level of $10\\%$ (within Monte Carlo tolerance). ",
+    "An asterisk in the type II section denotes that the corresponding classifier's ",
+    "violation rate exceeded this target. Bold entries indicate the lowest average ",
+    "type II error in each row, excluding the asterisked entries. The naive classifier ",
+    "is excluded from the type II error comparison because it fails to satisfy the ",
+    "type I constraint."
   ),
   label = "Tab::RealDataFixed"
 )
@@ -223,11 +232,12 @@ latex2 <- build_latex_table(
   viol_threshold = VIOLATION_THRESHOLD,
   bold_min_t2    = TRUE,
   caption = paste0(
-    "Average type I violation rates and mean (sd) Type II error rates (in percentage) ",
-    "across classifiers, models, and sample sizes. ",
-    "An asterisk indicates that the type I violation rate exceeds ",
-    "the target violation level of $10\\%$ (within Monte Carlo tolerance). The lowest ",
-    "average type II error in each row, among non-asterisked entries, is shown in bold."
+    "Type I violation rates and mean (SD) Type II error rates (\\%) across classifiers ",
+    "and datasets. An asterisk indicates that the type I violation rate exceeds ",
+    "the target violation level of $10\\%$ (within Monte Carlo tolerance). ",
+    "Bold entries indicate the lowest average type II error in each row. ",
+    "The naive classifier is excluded from the type II error comparison because ",
+    "it fails to satisfy the type I constraint."
   ),
   label = "Tab::RealDataSubs"
 )

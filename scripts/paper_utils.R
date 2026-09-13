@@ -11,7 +11,7 @@ library(mvtnorm)
 gen_data <- function(model, seed = NULL, n, d, pi = 0.5, nleave = 0, ribbon_angle = 3.14/6) {
   if (!is.null(seed)) set.seed(seed)
 
-  modellist <- c("gaussian", "t", "mixture","planet","homgaussian")
+  modellist <- c("gaussian", "t", "mixture","planet","planet_2","homgaussian")
   if (!(model %in% modellist)) stop("Unrecognized data model!")
 
   if (model == "gaussian") {
@@ -129,6 +129,35 @@ gen_data <- function(model, seed = NULL, n, d, pi = 0.5, nleave = 0, ribbon_angl
 
     perm <- sample.int(length(y))
     return(list(x = X[perm, , drop = FALSE], y = y[perm]))
+  }
+
+  # Elliptical model: 2 signal dimensions plus d - 2 independent N(0, 1) noise dimensions
+  if (model == "planet_2") {
+    if (d < 2) stop("d must be >= 2 for planet_2!")
+
+    nn <- rmultinom(1, n, c(pi, 1 - pi))
+    n0 <- nn[1, 1] + nleave
+    n1 <- nn[2, 1]
+
+    class1_center <- c(0.0, 0.0)
+    class1_cov    <- diag(2)
+
+    ribbon_center <- c(2,2)
+    ribbon_cov    <- matrix(c(3, 1.5, 1.5, 1), nrow = 2)
+
+    X1_signal <- MASS::mvrnorm(n1, mu = class1_center, Sigma = class1_cov)
+    X0_signal <- MASS::mvrnorm(n0, mu = ribbon_center, Sigma = ribbon_cov)
+
+    if (d > 2) {
+      X1 <- cbind(X1_signal, matrix(rnorm(n1 * (d - 2)), nrow = n1))
+      X0 <- cbind(X0_signal, matrix(rnorm(n0 * (d - 2)), nrow = n0))
+    } else {
+      X1 <- X1_signal
+      X0 <- X0_signal
+    }
+
+    S0 <- list(x = X0, y = rep(0L, n0))
+    S1 <- list(x = X1, y = rep(1L, n1))
   }
 
   x <- rbind(S0$x, S1$x)
